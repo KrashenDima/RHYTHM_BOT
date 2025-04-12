@@ -8,16 +8,16 @@ from aiogram.enums import ParseMode
 from config_data.config import Config, load_config
 from app.bot.handlers import command_handlers
 
+# Конфигурируем логирование
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(filename)s:%(lineno)d #%(levelname)-8s '
+               '[%(asctime)s] - %(name)s - %(message)s')
+
 # Инициализируем логгер
 logger = logging.getLogger(__name__)
 
 async def main():
-    # Конфигурируем логирование
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(filename)s:%(lineno)d #%(levelname)-8s '
-               '[%(asctime)s] - %(name)s - %(message)s')
-    
     # Выводим в консоль информацию о начале запуска бота
     logger.info('Starting bot')
 
