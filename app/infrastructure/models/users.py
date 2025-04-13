@@ -9,12 +9,8 @@ from app.bot.enums.roles import UserRole
 @dataclass
 class UsersModel(BaseModel):
     id: int
-    user_id: int
+    telegram_id: int
     created: datetime
-    tz_region: str | None
-    tz_offset: str | None
-    longitude: float | None
-    latitude: float | None
     language: str
     role: UserRole
     is_alive: bool
