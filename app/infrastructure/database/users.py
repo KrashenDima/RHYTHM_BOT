@@ -9,7 +9,8 @@ from app.infrastructure.models.users import UsersModel
 logger = logging.getLogger(__name__)
 
 class _UserDB:
-    __tablename__ = "users"
+    __tablename1 = "users"
+    __tablename2 = "profiles"
 
     def __init__(self, connection: AsyncConnection):
         self.connection = connection
@@ -36,7 +37,7 @@ class _UserDB:
         logger.info(
             "User added. db='%s', telegram_id=%d, date_time='%s', "
             "language='%s', role=%s, is_alive=%s, is_blocked=%s",
-            self.__tablename__,
+            self.__tablename1,
             telegram_id,
             datetime.now(timezone.utc),
             language,
@@ -54,7 +55,7 @@ class _UserDB:
             (telegram_id,),
         )
 
-        logger.info("User deleted. db='%s', user_id='%d'", self.__tablename__, telegram_id)
+        logger.info("User deleted. db='%s', telegram_id='%d'", self.__tablename1, telegram_id)
     
     async def get_user_record(self, *, telegram_id: int) -> UsersModel | None:
         cursor: AsyncCursor = await self.connection.execute(
@@ -76,6 +77,17 @@ class _UserDB:
         # возвращаем экземпляр класса UsersModel c данными из data или None
         return UsersModel(*data) if data else None
     
+    async def get_user_id(self, *, telegram_id: int):
+        cursor: AsyncCursor = await self.connection.execute(
+            """
+            SELECT id
+            FROM users
+            WHERE users.telegram_id = %s
+        """,
+            (telegram_id,),
+        )
+        return cursor.fetchone()[0]
+    
     async def update_alive_status(self, *, telegram_id: int, is_alive: bool = True) -> None:
         await self.connection.execute(
             """
@@ -87,7 +99,7 @@ class _UserDB:
         )
         logger.info(
             "User updated. db='%s', user_id=%d, is_alive=%s",
-            self.__tablename__,
+            self.__tablename1,
             telegram_id,
             is_alive,
         )
@@ -103,7 +115,45 @@ class _UserDB:
         )
         logger.info(
             "User updated. db='%s', user_id=%d, language=%s",
-            self.__tablename__,
+            self.__tablename1,
             telegram_id,
             user_lang,
         )
+
+    async def add_profile(
+            self,
+            *,
+            telegram_id: int,
+            name: str,
+            city: str,
+            text: str,
+            musician_type: str,
+            interest: str,
+            photo_url: str,
+    ) -> None:
+        
+        await self.connection.execute(
+            """
+            INSERT INTO profiles(user_id, name, city, text, musician_type, interest, photo_url)
+            VALUES(%s, %s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING;
+        """,
+            (await self.get_user_id(telegram_id=telegram_id), name, city, text, 
+             musician_type, interest, photo_url),
+        )
+
+        logger.info(
+            "Profile added. db='%s', telegram_id=%d, date_time='%s'",
+            self.__tablename2,
+            telegram_id,
+            datetime.now(timezone.utc),
+        )
+    
+    async def delete_profile(self, *, telegram_id: int) -> None:
+        await self.connection.execute(
+            """
+            DELETE FROM profiles WHERE user_id = %s;
+        """,
+            (await self.get_user_id(telegram_id=telegram_id),)
+        )
+
+        logger.info("Profile deleted. db='%s', telegram_id='%d'", self.__tablename2, telegram_id)
