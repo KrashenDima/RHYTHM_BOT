@@ -5,6 +5,7 @@ from psycopg import AsyncConnection, AsyncCursor
 
 from app.bot.enums.roles import UserRole
 from app.infrastructure.models.users import UsersModel
+from app.infrastructure.models.profiles import ProfilesModel
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +69,7 @@ class _UserDB:
                     is_alive,
                     is_blocked
             FROM users
-            WHERE users.telegram_id = %s
+            WHERE users.telegram_id = %s;
         """,
             (telegram_id,),
         )
@@ -82,11 +83,12 @@ class _UserDB:
             """
             SELECT id
             FROM users
-            WHERE users.telegram_id = %s
+            WHERE users.telegram_id = %s;
         """,
             (telegram_id,),
         )
-        return cursor.fetchone()[0]
+        id = await cursor.fetchone()
+        return id[0] if id else None
     
     async def update_alive_status(self, *, telegram_id: int, is_alive: bool = True) -> None:
         await self.connection.execute(
@@ -131,13 +133,13 @@ class _UserDB:
             interest: str,
             photo_url: str,
     ) -> None:
-        
+        user_id = await self.get_user_id(telegram_id=telegram_id)
         await self.connection.execute(
             """
             INSERT INTO profiles(user_id, name, city, text, musician_type, interest, photo_url)
             VALUES(%s, %s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING;
         """,
-            (await self.get_user_id(telegram_id=telegram_id), name, city, text, 
+            (user_id, name, city, text, 
              musician_type, interest, photo_url),
         )
 
@@ -146,14 +148,37 @@ class _UserDB:
             self.__tablename2,
             telegram_id,
             datetime.now(timezone.utc),
-        )
+        ) 
     
     async def delete_profile(self, *, telegram_id: int) -> None:
+        user_id = await self.get_user_id(telegram_id=telegram_id)
         await self.connection.execute(
             """
             DELETE FROM profiles WHERE user_id = %s;
         """,
-            (await self.get_user_id(telegram_id=telegram_id),)
+            (user_id,),
         )
 
         logger.info("Profile deleted. db='%s', telegram_id='%d'", self.__tablename2, telegram_id)
+
+    async def get_profile_record(self, *, telegram_id: int) -> ProfilesModel | None:
+        user_id = await self.get_user_id(telegram_id=telegram_id)
+        cursor: AsyncCursor = await self.connection.execute(
+            """
+            SELECT id,
+                    name
+                    user_id,
+                    city,
+                    text,
+                    musician_type,
+                    interest,
+                    photo_url,
+                    created_at,
+                    updated_at
+            FROM profiles
+            WHERE user_id = %s;
+        """,
+        (user_id,),
+        )
+        data = await cursor.fetchone()
+        return ProfilesModel(*data) if data else None
