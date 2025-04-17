@@ -8,4 +8,8 @@ class FSMFillProfile(StatesGroup):
     fill_musician_type = State()
     fill_interest = State()
     upload_photo = State()
+    
+class FSMSearch(StatesGroup):
     main_menu = State()
+    search = State()
+    get_my_profile = State()

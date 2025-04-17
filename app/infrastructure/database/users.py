@@ -170,3 +170,20 @@ class _UserDB:
         )
         data = await cursor.fetchone()
         return ProfilesModel(*data) if data else None
+
+    async def get_appropriate_profiles(self, *, telegram_id: int, 
+                                      city: str, interest: str):
+        user = await self.get_user_record(telegram_id=telegram_id)
+        cursor: AsyncCursor = await self.connection.execute(
+            """
+            SELECT name,
+                    city,
+                    text,
+                    photo_url
+            FROM profiles
+            WHERE user_id != %s AND city = %s AND musician_type = %s;
+        """,
+        (user.id, city.title(), interest))
+        return await cursor.fetchall()
+
+

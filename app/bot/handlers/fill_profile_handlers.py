@@ -6,7 +6,7 @@ from aiogram.types import (
     InlineKeyboardMarkup, Message, PhotoSize, ReplyKeyboardRemove
 )
 
-from app.bot.states.user_states import FSMFillProfile
+from app.bot.states.user_states import FSMFillProfile, FSMSearch
 from app.infrastructure.database.db import DB
 from app.infrastructure.models.profiles import ProfilesModel
 from app.bot.keyboards.reply_kb import (musician_type_keyboard, 
@@ -109,7 +109,7 @@ async def process_upload_photo(message: Message, state: FSMContext,
                                caption=f'{profile_data["name"]}, {profile_data["city"]}\n\n'
                                f'{profile_data["text"]}')
     await message.answer(text=LEXICON_RU['main_menu'], reply_markup=main_menu_keyboard)
-    await state.set_state(FSMFillProfile.main_menu)
+    await state.set_state(FSMSearch.main_menu)
 
 @fill_profile_router.message(StateFilter(FSMFillProfile.upload_photo),
                              F.text == KEYBOARDS_LEXICON_RU['no_photo'])
@@ -130,7 +130,7 @@ async def process_no_photo_button(message: Message, state: FSMContext,
     await message.answer(text=f'{profile_data["name"]}, {profile_data["city"]}\n'
                          f'{profile_data["text"]}')
     await message.answer(text=LEXICON_RU['main_menu'], reply_markup=main_menu_keyboard)
-    await state.set_state(FSMFillProfile.main_menu) 
+    await state.set_state(FSMSearch.main_menu) 
 
 @fill_profile_router.message(StateFilter(FSMFillProfile.upload_photo))
 async def warning_no_photo(message: Message):

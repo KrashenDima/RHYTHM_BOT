@@ -9,7 +9,7 @@ from app.infrastructure.database.db import DB
 from app.infrastructure.models.users import UsersModel
 from app.infrastructure.models.profiles import ProfilesModel
 from app.bot.keyboards.reply_kb import yes_no_keyboard, main_menu_keyboard
-from app.bot.states.user_states import FSMFillProfile
+from app.bot.states.user_states import FSMFillProfile, FSMSearch
 
 
 commands_router = Router()
@@ -38,4 +38,4 @@ async def process_start_command(message: Message, state: FSMContext, db: DB) -> 
                                caption=f'{profile_record.name}, {profile_record.city}\n\n'
                                f'{profile_record.text}')
         await message.answer(text=LEXICON_RU['main_menu'], reply_markup=main_menu_keyboard)
-        await state.set_state(FSMFillProfile.main_menu)
+        await state.set_state(FSMSearch.main_menu)
