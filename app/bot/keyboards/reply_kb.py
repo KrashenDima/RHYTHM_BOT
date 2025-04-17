@@ -8,6 +8,8 @@ mus_btn = KeyboardButton(text=KEYBOARDS_LEXICON_RU['musician'])
 mus_group_btn = KeyboardButton(text=KEYBOARDS_LEXICON_RU['music_group'])
 sound_engineer_btn = KeyboardButton(text=KEYBOARDS_LEXICON_RU['sound_engineer'])
 no_photo_btn = KeyboardButton(text=KEYBOARDS_LEXICON_RU['no_photo'])
+one_btn = KeyboardButton(text=KEYBOARDS_LEXICON_RU['one'])
+two_btn = KeyboardButton(text=KEYBOARDS_LEXICON_RU['two'])
 
 yes_no_keyboard = ReplyKeyboardMarkup(
     keyboard=[[yes_btn, no_btn]],
@@ -19,5 +21,9 @@ musician_type_keyboard = ReplyKeyboardMarkup(
 )
 no_photo_keyboard = ReplyKeyboardMarkup(
     keyboard=[[no_photo_btn]],
+    resize_keyboard=True
+)
+main_menu_keyboard = ReplyKeyboardMarkup(
+    keyboard=[[one_btn, two_btn]],
     resize_keyboard=True
 )

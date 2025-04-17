@@ -1,6 +1,5 @@
 from aiogram import Router, F
 from aiogram.filters import StateFilter
-from aiogram.fsm.state import State, StatesGroup, default_state
 from aiogram.fsm.context import FSMContext
 from aiogram.types import (
     CallbackQuery, InlineKeyboardButton,
@@ -10,7 +9,9 @@ from aiogram.types import (
 from app.bot.states.user_states import FSMFillProfile
 from app.infrastructure.database.db import DB
 from app.infrastructure.models.profiles import ProfilesModel
-from app.bot.keyboards.reply_kb import musician_type_keyboard, no_photo_keyboard
+from app.bot.keyboards.reply_kb import (musician_type_keyboard, 
+                                        no_photo_keyboard,
+                                        main_menu_keyboard)
 from lexicon.lexicon_ru import KEYBOARDS_LEXICON_RU, LEXICON_RU
 
 
@@ -62,7 +63,7 @@ async def process_text_sent(message: Message, state: FSMContext):
 
 @fill_profile_router.message(StateFilter(FSMFillProfile.fill_musician_type),
                              F.text.in_({KEYBOARDS_LEXICON_RU['musician'],
-                                         KEYBOARDS_LEXICON_RU['usic_group'],
+                                         KEYBOARDS_LEXICON_RU['music_group'],
                                          KEYBOARDS_LEXICON_RU['sound_engineer']}))
 async def process_musician_type_button(message: Message, state: FSMContext):
     await state.update_data(musician_type=message.text)
@@ -75,7 +76,7 @@ async def warning_no_musician_type(message: Message):
 
 @fill_profile_router.message(StateFilter(FSMFillProfile.fill_interest),
                              F.text.in_({KEYBOARDS_LEXICON_RU['musician'],
-                                         KEYBOARDS_LEXICON_RU['usic_group'],
+                                         KEYBOARDS_LEXICON_RU['music_group'],
                                          KEYBOARDS_LEXICON_RU['sound_engineer']}))
 async def process_interest_button(message: Message, state: FSMContext):
     await state.update_data(interest=message.text)
@@ -92,22 +93,48 @@ async def process_upload_photo(message: Message, state: FSMContext,
                                largest_photo: PhotoSize, db: DB):
     await state.update_data(photo_id=largest_photo.file_id)
     profile_data = await state.get_data()
-    profiles_record: ProfilesModel | None = await db.users.get_profile_record(
-        telegram_id=message.from_user.id
-    )
-
-    if profiles_record is None:
-        await db.users.add_profile(
+    
+    await db.users.add_profile(
             telegram_id=message.from_user.id,
             name=profile_data['name'],
             city=profile_data['city'],
             text=profile_data['text'],
             musician_type=profile_data['musician_type'],
             interest=profile_data['interest'],
-            photo_url=profile_data['photo_id']
-        )
-        
+            photo_url=profile_data['photo_id'])
 
+    await message.answer(text=LEXICON_RU['fill_profile_end'])
+    await message.answer(text=LEXICON_RU['your_profile'])
+    await message.answer_photo(photo=profile_data['photo_id'],
+                               caption=f'{profile_data["name"]}, {profile_data["city"]}\n\n'
+                               f'{profile_data["text"]}')
+    await message.answer(text=LEXICON_RU['main_menu'], reply_markup=main_menu_keyboard)
+    await state.set_state(FSMFillProfile.main_menu)
+
+@fill_profile_router.message(StateFilter(FSMFillProfile.upload_photo),
+                             F.text == KEYBOARDS_LEXICON_RU['no_photo'])
+async def process_no_photo_button(message: Message, state: FSMContext,
+                                  db: DB):
+    profile_data = await state.get_data()
+
+    await db.users.add_profile(
+            telegram_id=message.from_user.id,
+            name=profile_data['name'],
+            city=profile_data['city'],
+            text=profile_data['text'],
+            musician_type=profile_data['musician_type'],
+            interest=profile_data['interest'],
+            photo_url=None)
+    await message.answer(text=LEXICON_RU['fill_profile_end'])
+    await message.answer(text=LEXICON_RU['your_profile'])
+    await message.answer(text=f'{profile_data["name"]}, {profile_data["city"]}\n'
+                         f'{profile_data["text"]}')
+    await message.answer(text=LEXICON_RU['main_menu'], reply_markup=main_menu_keyboard)
+    await state.set_state(FSMFillProfile.main_menu) 
+
+@fill_profile_router.message(StateFilter(FSMFillProfile.upload_photo))
+async def warning_no_photo(message: Message):
+    await message.answer(text=LEXICON_RU['warning'])
 
 
 

@@ -78,18 +78,6 @@ class _UserDB:
         # возвращаем экземпляр класса UsersModel c данными из data или None
         return UsersModel(*data) if data else None
     
-    async def get_user_id(self, *, telegram_id: int):
-        cursor: AsyncCursor = await self.connection.execute(
-            """
-            SELECT id
-            FROM users
-            WHERE users.telegram_id = %s;
-        """,
-            (telegram_id,),
-        )
-        id = await cursor.fetchone()
-        return id[0] if id else None
-    
     async def update_alive_status(self, *, telegram_id: int, is_alive: bool = True) -> None:
         await self.connection.execute(
             """
@@ -133,13 +121,13 @@ class _UserDB:
             interest: str,
             photo_url: str,
     ) -> None:
-        user_id = await self.get_user_id(telegram_id=telegram_id)
+        user = await self.get_user_record(telegram_id=telegram_id)
         await self.connection.execute(
             """
             INSERT INTO profiles(user_id, name, city, text, musician_type, interest, photo_url)
             VALUES(%s, %s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING;
         """,
-            (user_id, name, city, text, 
+            (user.id, name, city, text, 
              musician_type, interest, photo_url),
         )
 
@@ -151,18 +139,18 @@ class _UserDB:
         ) 
     
     async def delete_profile(self, *, telegram_id: int) -> None:
-        user_id = await self.get_user_id(telegram_id=telegram_id)
+        user = await self.get_user_record(telegram_id=telegram_id)
         await self.connection.execute(
             """
             DELETE FROM profiles WHERE user_id = %s;
         """,
-            (user_id,),
+            (user.id,),
         )
 
         logger.info("Profile deleted. db='%s', telegram_id='%d'", self.__tablename2, telegram_id)
 
     async def get_profile_record(self, *, telegram_id: int) -> ProfilesModel | None:
-        user_id = await self.get_user_id(telegram_id=telegram_id)
+        user = await self.get_user_record(telegram_id=telegram_id)
         cursor: AsyncCursor = await self.connection.execute(
             """
             SELECT id,
@@ -178,7 +166,7 @@ class _UserDB:
             FROM profiles
             WHERE user_id = %s;
         """,
-        (user_id,),
+        (user.id,),
         )
         data = await cursor.fetchone()
         return ProfilesModel(*data) if data else None
