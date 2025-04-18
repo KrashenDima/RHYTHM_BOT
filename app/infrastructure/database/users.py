@@ -176,7 +176,8 @@ class _UserDB:
         user = await self.get_user_record(telegram_id=telegram_id)
         cursor: AsyncCursor = await self.connection.execute(
             """
-            SELECT name,
+            SELECT user_id,
+                    name,
                     city,
                     text,
                     photo_url
@@ -185,5 +186,15 @@ class _UserDB:
         """,
         (user.id, city.title(), interest))
         return await cursor.fetchall()
+    
+    async def get_telegram_id_from_profile(self, *, user_id):
+        cursor: AsyncCursor = await self.connection.execute(
+            """
+            SELECT telegram_id
+            FROM users
+            WHERE id = %s;
+        """,
+        (user_id))
+        return await cursor.fetchone()[0]
 
 
