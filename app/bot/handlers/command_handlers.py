@@ -28,7 +28,8 @@ async def process_start_command(message: Message, state: FSMContext, db: DB) -> 
         await db.users.add(
             telegram_id=message.from_user.id,
             language=message.from_user.language_code,
-            role=UserRole.USER
+            role=UserRole.USER,
+            username=message.from_user.username
         )
     if profile_record is None:
         await message.answer(text=LEXICON_RU['/start'], reply_markup=yes_no_keyboard)

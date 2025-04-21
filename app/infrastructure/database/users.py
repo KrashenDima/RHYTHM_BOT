@@ -25,14 +25,15 @@ class _UserDB:
             role: UserRole,
             is_alive: bool = True,
             is_blocked: bool = False,
+            username: str
     ) -> None:
         
         await self.connection.execute(
             """
-            INSERT INTO users(telegram_id, language, role, is_alive, is_blocked)
-            VALUES(%s, %s, %s, %s, %s) ON CONFLICT DO NOTHING;
+            INSERT INTO users(telegram_id, language, role, is_alive, is_blocked, username)
+            VALUES(%s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING;
         """,
-            (telegram_id, language, role.value, is_alive, is_blocked),
+            (telegram_id, language, role.value, is_alive, is_blocked, username),
         )
 
         logger.info(
@@ -67,7 +68,8 @@ class _UserDB:
                     language,
                     role,
                     is_alive,
-                    is_blocked
+                    is_blocked,
+                    username
             FROM users
             WHERE users.telegram_id = %s;
         """,
@@ -171,7 +173,7 @@ class _UserDB:
         data = await cursor.fetchone()
         return ProfilesModel(*data) if data else None
 
-    async def get_appropriate_profiles(self, *, telegram_id: int, 
+    async def get_random_appropriate_profiles(self, *, telegram_id: int, 
                                       city: str, interest: str):
         user = await self.get_user_record(telegram_id=telegram_id)
         cursor: AsyncCursor = await self.connection.execute(
@@ -182,10 +184,10 @@ class _UserDB:
                     text,
                     photo_url
             FROM profiles
-            WHERE user_id != %s AND city = %s AND musician_type = %s;
+            WHERE user_id != %s AND city = %s AND musician_type = %s ORDER BY RANDOM() LIMIT 1;
         """,
         (user.id, city.title(), interest))
-        return await cursor.fetchall()
+        return await cursor.fetchone()
     
     async def get_telegram_id_from_profile(self, *, user_id):
         cursor: AsyncCursor = await self.connection.execute(

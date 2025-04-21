@@ -15,6 +15,7 @@ class UsersModel(BaseModel):
     role: UserRole
     is_alive: bool
     is_blocked: bool
+    username: str
 
     def __post_init__(self):
         self.role = UserRole(self.role)
