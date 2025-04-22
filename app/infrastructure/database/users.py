@@ -156,8 +156,8 @@ class _UserDB:
         cursor: AsyncCursor = await self.connection.execute(
             """
             SELECT id,
-                    name
                     user_id,
+                    name,
                     city,
                     text,
                     musician_type,
@@ -189,14 +189,15 @@ class _UserDB:
         (user.id, city.title(), interest))
         return await cursor.fetchone()
     
-    async def get_telegram_id_from_profile(self, *, user_id):
+    async def get_telegram_id_from_profile(self, *, user_id: int):
         cursor: AsyncCursor = await self.connection.execute(
             """
             SELECT telegram_id
             FROM users
             WHERE id = %s;
         """,
-        (user_id))
-        return await cursor.fetchone()[0]
+        (user_id,))
+        telegram_id = await cursor.fetchone()
+        return telegram_id[0] if telegram_id else None
 
 

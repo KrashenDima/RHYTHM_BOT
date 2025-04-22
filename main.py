@@ -10,7 +10,10 @@ from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 
 from config_data.config import Config, load_config
-from app.bot.handlers import command_handlers, fill_profile_handlers
+from app.bot.handlers import (command_handlers, 
+                              fill_profile_handlers, 
+                              search_handlers,
+                              other_handlers)
 from app.bot.middlewares.database import DataBaseMiddleware
 from app.infrastructure.connect_to_pg import get_pg_pool
 
@@ -52,10 +55,11 @@ async def main():
     logger.info("Including routers")
     dp.include_router(command_handlers.commands_router)
     dp.include_router(fill_profile_handlers.fill_profile_router)
+    dp.include_router(search_handlers.search_router)
+    dp.include_router(other_handlers.other_router)
 
     logger.info("Including middlewares")
     dp.update.middleware(DataBaseMiddleware())
-
 
     try:
         await dp.start_polling(bot, _db_pool = db_pool)

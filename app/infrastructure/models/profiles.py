@@ -14,4 +14,4 @@ class ProfilesModel(BaseModel):
     interest: str
     photo_url: str
     created_at: datetime
-    updated_at: datetime
+    updated_at: datetime | None

@@ -18,19 +18,19 @@ commands_router = Router()
 async def process_start_command(message: Message, state: FSMContext, db: DB) -> None:
 
     user_record: UsersModel | None = await db.users.get_user_record(
-        telegram_id=message.from_user.id
-    )
-    profile_record: ProfilesModel | None = await db.users.get_profile_record(
-        telegram_id=message.from_user.id
-    )
-
+        telegram_id=message.from_user.id)
+   
     if user_record is None:
         await db.users.add(
             telegram_id=message.from_user.id,
             language=message.from_user.language_code,
             role=UserRole.USER,
             username=message.from_user.username
-        )
+        ) 
+        
+    profile_record: ProfilesModel | None = await db.users.get_profile_record(
+        telegram_id=message.from_user.id)
+    
     if profile_record is None:
         await message.answer(text=LEXICON_RU['/start'], reply_markup=yes_no_keyboard)
         await state.set_state(FSMFillProfile.yes_no_fillprofile)

@@ -20,10 +20,6 @@ class Reactions:
                  VALUES(%s, %s) ON CONFLICT DO NOTHING;
                  """,
                  (from_user_id, to_user_id))
-           
-           logger.info(
-                 "Reaction added. db='%s', from_user_id=%s, to_user_id=%s",
-                 (self.__tablename__, from_user_id, to_user_id))
 
 
     async def get_reaction(self, *, from_user_id: int, to_user_id: int,):
