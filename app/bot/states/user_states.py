@@ -13,3 +13,4 @@ class FSMSearch(StatesGroup):
     main_menu = State()
     search = State()
     get_my_profile = State()
+    view_likes = State()

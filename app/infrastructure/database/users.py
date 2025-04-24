@@ -173,20 +173,21 @@ class _UserDB:
         data = await cursor.fetchone()
         return ProfilesModel(*data) if data else None
 
-    async def get_random_appropriate_profiles(self, *, telegram_id: int, 
+    async def get_random_appropriate_profile(self, *, users_id: list[int], 
                                       city: str, interest: str):
-        user = await self.get_user_record(telegram_id=telegram_id)
-        cursor: AsyncCursor = await self.connection.execute(
-            """
-            SELECT user_id,
+        placeholders = ', '.join(['%s'] * len(users_id))
+        query = f"""SELECT user_id,
                     name,
                     city,
                     text,
                     photo_url
-            FROM profiles
-            WHERE user_id != %s AND city = %s AND musician_type = %s ORDER BY RANDOM() LIMIT 1;
-        """,
-        (user.id, city.title(), interest))
+                    FROM profiles
+                    WHERE user_id NOT IN ({placeholders}) AND city = %s AND musician_type = %s
+                    ORDER BY RANDOM()
+                    LIMIT 1;
+        """
+        params = users_id + [city.title(), interest]
+        cursor: AsyncCursor = await self.connection.execute(query, params)
         return await cursor.fetchone()
     
     async def get_telegram_id_from_profile(self, *, user_id: int):

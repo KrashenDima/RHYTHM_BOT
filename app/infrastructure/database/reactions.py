@@ -31,6 +31,16 @@ class Reactions:
                  """,
                  (from_user_id, to_user_id))
            return await cursor.fetchone()
+    
+    async def get_from_users(self, *, to_user_id: int):
+          cursor: AsyncCursor = await self.connection.execute(
+                """
+                SELECT from_user_id
+                FROM reactions
+                WHERE to_user_id = %s;
+                """,
+                (to_user_id,))
+          return await cursor.fetchall()
 
            
            
