@@ -22,7 +22,7 @@ class Reactions:
                  (from_user_id, to_user_id))
 
 
-    async def get_reaction(self, *, from_user_id: int, to_user_id: int,):
+    async def get_reaction(self, *, from_user_id: int, to_user_id: int):
            cursor: AsyncCursor = await self.connection.execute(
                  """
                  SELECT 1
@@ -41,6 +41,14 @@ class Reactions:
                 """,
                 (to_user_id,))
           return await cursor.fetchall()
+    
+    async def delete_like(self, *, from_user: int, to_user: int):
+          await self.connection.execute(
+                """
+                DELETE FROM reactions 
+                WHERE from_user_id = %s AND to_user_id = %s;
+                """,
+                (from_user, to_user))
 
            
            

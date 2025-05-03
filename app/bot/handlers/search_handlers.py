@@ -154,17 +154,17 @@ async def process_main_menu_two(message: Message, db: DB):
 @search_router.message(StateFilter(FSMSearch.main_menu),
                        F.text == KEYBOARDS_LEXICON_RU['three'])
 async def process_main_menu_three(message: Message, state: FSMContext, db: DB):
-    likes: list = await db.reactions.get_from_users(message.from_user.id)
+    likes: list = await db.reactions.get_from_users(
+        to_user_id=message.from_user.id)
 
     if likes:
         await message.answer(text=LEXICON_RU['likes_count'] + f'{len(likes)}')
-        profile_record = await db.users.get_profile_record(telegram_id=likes[0])
+        profile_record = await db.users.get_profile_record(telegram_id=likes[0][0])
         await profile_output(message=message,
                              photo=profile_record.photo_url,
                              name=profile_record.name,
                              city=profile_record.city,
                              text=profile_record.text)
-        await state.update_data(likes = likes)
         await state.set_state(FSMSearch.view_likes)
     else: 
         await message.answer(text=LEXICON_RU['no_likes'])
@@ -208,7 +208,7 @@ async def process_like(message: Message, state: FSMContext, db: DB):
         if is_match:
             await process_match(message, db, from_user, to_user, profile_record, other_profile_record)
         else: 
-            await message.bot.send_message(text=LEXICON_RU['like'])
+            await message.bot.send_message(chat_id=to_user, text=LEXICON_RU['like'])
 
         await get_random_profile(profile_record=profile_record,
                                  db=db,
@@ -246,38 +246,85 @@ async def process_sleep(message: Message, state: FSMContext):
 async def warning_search(message: Message):
     await message.answer(text=LEXICON_RU['warning'])
 
+# обработка лайка в состоянии просмотра лайков
 @search_router.message(StateFilter(FSMSearch.view_likes),
                        F.text == KEYBOARDS_LEXICON_RU['like'])
 async def process_like_in_view_likes(message: Message,
                                      state: FSMContext,
                                      db: DB):
-    state_data = await state.get_data()
-    likes: list = state_data.get("likes", [])
+    likes: list = await db.reactions.get_from_users(
+        to_user_id=message.from_user.id)
     from_user = message.from_user.id
-    to_user = likes.pop(0)
+    to_user = likes[0][0]
     
-    if likes:
-        profile = await db.users.get_profile_record(
-            telegram_id=from_user)
-        liked_profile = await db.users.get_profile_record(
-            telegram_id=to_user)
-        
-        await process_match(message=message,
-                            db=db,
-                            from_user=from_user,
-                            to_user=to_user,
-                            profile_record=profile,
-                            other_profile_record=liked_profile)
+    profile = await db.users.get_profile_record(
+        telegram_id=from_user)
+    liked_profile = await db.users.get_profile_record(
+        telegram_id=to_user)
+    await process_match(message=message,
+                        db=db,
+                        from_user=from_user,
+                        to_user=to_user,
+                        profile_record=profile,
+                        other_profile_record=liked_profile)
+    await db.reactions.delete_like(from_user=to_user, to_user=from_user)
+    await db.reactions.delete_like(from_user=from_user, to_user=to_user)
+
+
+
+    new_likes: list = await db.reactions.get_from_users(
+        to_user_id=message.from_user.id)
+    if new_likes:
         other_profile = await db.users.get_profile_record(
-            telegram_id=likes[0])
+            telegram_id=new_likes[0][0])
         await profile_output(message=message,
                              photo=other_profile.photo_url,
                              name=other_profile.name,
                              city=other_profile.city,
                              text=other_profile.text)
-        await state.update_data(likes = likes)
     else:
         await message.answer(text=LEXICON_RU['no_more_likes'])
         await message.answer(text=LEXICON_RU['main_menu'], 
                              reply_markup=main_menu_keyboard)
         await state.set_state(FSMSearch.main_menu)
+
+# обработка дизлайка в состоянии просмотра лайков
+@search_router.message(StateFilter(FSMSearch.view_likes),
+                       F.text == KEYBOARDS_LEXICON_RU['dislike'])
+async def process_dislike_in_view_likes(message: Message,
+                                        state: FSMContext,
+                                        db: DB):
+    likes: list = await db.reactions.get_from_users(
+        to_user_id=message.from_user.id)
+    await db.reactions.delete_like(from_user=likes[0][0], 
+                                   to_user=message.from_user.id)
+    new_likes: list = await db.reactions.get_from_users(
+        to_user_id=message.from_user.id)
+
+    if new_likes:
+        other_profile = await db.users.get_profile_record(
+            telegram_id=new_likes[0][0])
+        await profile_output(message=message,
+                             photo=other_profile.photo_url,
+                             name=other_profile.name,
+                             city=other_profile.city,
+                             text=other_profile.text)
+    else:
+        await message.answer(text=LEXICON_RU['no_more_likes'])
+        await message.answer(text=LEXICON_RU['main_menu'], 
+                             reply_markup=main_menu_keyboard)
+        await state.set_state(FSMSearch.main_menu)
+
+# обработка выхода из просмотра лайков
+@search_router.message(StateFilter(FSMSearch.view_likes),
+                       F.text == KEYBOARDS_LEXICON_RU['sleep'])
+async def process_sleep_in_view_likes(message: Message,
+                                      state: FSMContext):
+    await message.answer(text=LEXICON_RU['main_menu'], 
+                         reply_markup=main_menu_keyboard)
+    await state.set_state(FSMSearch.main_menu)
+
+# обработка некорректного сообщения в состоянии просмотра лайков
+@search_router.message(StateFilter(FSMSearch.view_likes))
+async def warning_in_view_likes(message: Message):
+    await message.answer(text=LEXICON_RU['warning'])
